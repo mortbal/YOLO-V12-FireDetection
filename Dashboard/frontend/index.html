@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fire Detection Dashboard</title>
+    <link rel="stylesheet" href="../static/css/styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔥 Fire Detection System Dashboard</h1>
+        </header>
+
+        <!-- Tab Navigation -->
+        <div class="tabs-container">
+            <div class="tab-buttons">
+                <button class="tab-button active" data-tab="train">Train</button>
+                <button class="tab-button" data-tab="test">Test</button>
+            </div>
+        </div>
+
+        <!-- Train Tab Content -->
+        <div id="train-tab" class="tab-content active">
+            <div class="control-panel">
+            <h2>Training Configuration</h2>
+            
+            <div class="config-grid">
+                <div class="config-item">
+                    <label for="yolo-version">YOLO Version:</label>
+                    <select id="yolo-version" name="yolo-version">
+                        <option value="10">YOLOv10</option>
+                        <option value="11" selected>YOLOv11</option>
+                        <option value="12">YOLOv12</option>
+                    </select>
+                </div>
+
+                <div class="config-item">
+                    <label for="model-size">Model Size:</label>
+                    <select id="model-size" name="model-size">
+                        <option value="n" selected>Nano (n)</option>
+                        <option value="s">Small (s)</option>
+                        <option value="m">Medium (m)</option>
+                        <option value="l">Large (l)</option>
+                        <option value="x">Extra Large (x)</option>
+                    </select>
+                </div>
+
+                <div class="config-item">
+                    <label for="epochs">Number of Epochs:</label>
+                    <input type="number" id="epochs" name="epochs" value="100" min="1" max="1000">
+                </div>
+
+                <div class="config-item">
+                    <button id="start-training" class="btn-primary">Start Training</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="status-section">
+            <div id="training-status" class="status-display">
+                Ready to start training
+            </div>
+        </div>
+
+        <div class="training-progress-section">
+            <h2>Training Progress</h2>
+            <div class="progress-grid">
+                <div class="progress-card">
+                    <h3>Epoch</h3>
+                    <div id="epoch-counter" class="progress-value">-</div>
+                    <div class="progress-subtitle">Current / Total</div>
+                </div>
+                <div class="progress-card">
+                    <h3>Progress</h3>
+                    <div class="progress-container">
+                        <div class="progress-bar">
+                            <div id="progress-fill" class="progress-fill"></div>
+                        </div>
+                        <div id="progress-percentage" class="progress-text">0%</div>
+                    </div>
+                </div>
+                <div class="progress-card">
+                    <h3>Elapsed Time</h3>
+                    <div id="epoch-elapsed-time" class="progress-value">-</div>
+                    <div class="progress-subtitle">Current Epoch</div>
+                </div>
+                <div class="progress-card">
+                    <h3>Remaining Time</h3>
+                    <div id="estimated-remaining-time" class="progress-value">-</div>
+                    <div class="progress-subtitle">Estimated</div>
+                </div>
+            </div>
+        </div>
+
+            <!-- Console Output Section -->
+            <div class="console-section">
+                <h2>Training Console</h2>
+                <div id="console-output" class="console-display">
+                    <div class="console-line">Ready to start training...</div>
+                </div>
+                <button id="clear-console" class="btn-secondary">Clear Console</button>
+            </div>
+        </div>
+
+        <!-- Test Tab Content -->
+        <div id="test-tab" class="tab-content">
+            <div class="control-panel">
+                <h2>Fire Detection Testing</h2>
+                
+                <div class="config-grid">
+                    <div class="config-item">
+                        <label for="test-file-path">Test File Path:</label>
+                        <div class="file-input-group">
+                            <input type="text" id="test-file-path" name="test-file-path" placeholder="Enter path to test file (jpeg, mp4, png)">
+                            <button type="button" class="btn-browse" id="browse-test-file">Browse</button>
+                        </div>
+                    </div>
+
+                    <div class="config-item">
+                        <label for="output-results-path">Output Results Path:</label>
+                        <div class="file-input-group">
+                            <input type="text" id="output-results-path" name="output-results-path" placeholder="Enter output results path">
+                            <button type="button" class="btn-browse" id="browse-output-path">Browse</button>
+                        </div>
+                    </div>
+
+                    <div class="config-item">
+                        <button id="start-detection" class="btn-primary">Start Detection</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="status-section">
+                <div id="detection-status" class="status-display">
+                    Ready to start detection
+                </div>
+            </div>
+
+            <div class="results-section">
+                <h2>Detection Results</h2>
+                <div id="detection-results" class="results-display">
+                    No results yet
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
+    <script src="../static/js/dashboard.js"></script>
+</body>
+</html>

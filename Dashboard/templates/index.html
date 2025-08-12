@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fire Detection Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔥 Fire Detection System Dashboard</h1>
+        </header>
+
+        <div class="control-panel">
+            <h2>Training Configuration</h2>
+            
+            <div class="config-grid">
+                <div class="config-item">
+                    <label for="yolo-version">YOLO Version:</label>
+                    <select id="yolo-version" name="yolo-version">
+                        <option value="10">YOLOv10</option>
+                        <option value="11" selected>YOLOv11</option>
+                        <option value="12">YOLOv12</option>
+                    </select>
+                </div>
+
+                <div class="config-item">
+                    <label for="model-size">Model Size:</label>
+                    <select id="model-size" name="model-size">
+                        <option value="n" selected>Nano (n)</option>
+                        <option value="s">Small (s)</option>
+                        <option value="m">Medium (m)</option>
+                        <option value="l">Large (l)</option>
+                        <option value="x">Extra Large (x)</option>
+                    </select>
+                </div>
+
+                <div class="config-item">
+                    <label for="epochs">Number of Epochs:</label>
+                    <input type="number" id="epochs" name="epochs" value="100" min="1" max="1000">
+                </div>
+
+                <div class="config-item">
+                    <button id="start-training" class="btn-primary">Start Training</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="status-section">
+            <div id="training-status" class="status-display">
+                Ready to start training
+            </div>
+        </div>
+
+        <div class="live-data-section">
+            <h2>Live Training Data</h2>
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <h3>Current Epoch</h3>
+                    <div id="current-epoch" class="metric-value">-</div>
+                </div>
+                <div class="metric-card">
+                    <h3>Loss</h3>
+                    <div id="current-loss" class="metric-value">-</div>
+                </div>
+                <div class="metric-card">
+                    <h3>mAP@0.5</h3>
+                    <div id="current-map" class="metric-value">-</div>
+                </div>
+                <div class="metric-card">
+                    <h3>Progress</h3>
+                    <div class="progress-bar">
+                        <div id="progress-fill" class="progress-fill"></div>
+                    </div>
+                    <div id="progress-text" class="progress-text">0%</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+</body>
+</html>
