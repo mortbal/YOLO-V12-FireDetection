@@ -1,0 +1,16 @@
+# Minimal YOLO Training Configuration
+# Only specify parameters you want to customize
+# All other parameters will use YOLO defaults
+
+# Essential parameters
+data: YoloAssets/dataset/data.yaml
+epochs: 3
+batch: 0.5
+imgsz: 640
+name: fire_detection_model
+project: YoloAssets/runs/train
+
+# Optional customizations (remove any you don't need)
+device: cuda
+save: true
+plots: true

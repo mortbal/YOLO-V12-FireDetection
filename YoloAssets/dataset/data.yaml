@@ -1,0 +1,10 @@
+#path: YoloAssets/dataset/dataset    # dataset root (relative to project root)
+path: YoloAssets/dataset/dataset_minimal    # minimal dataset root for faster training and iteration(relative to project root)
+train: train/images  # training images folder
+val: valid/images  # validation images folder  
+test: test/images    # test images folder
+
+nc: 2  # number of classes
+names:
+  - fire
+  - smoke

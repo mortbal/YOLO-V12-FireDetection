@@ -144,8 +144,8 @@ header h1 {
 
 .progress-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 20px;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 18px;
 }
 
 .progress-card {

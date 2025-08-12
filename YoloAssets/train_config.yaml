@@ -1,0 +1,70 @@
+# YOLO Training Configuration File
+# This file contains all training parameters for fire detection model
+
+# Dataset Configuration
+data: YoloAssets/dataset/data.yaml  # path to dataset YAML file
+
+# Training Parameters
+epochs: 100                         # number of training epochs
+batch: 16                          # batch size (-1 for auto batch sizing)
+imgsz: 640                         # input image size (pixels)
+device: 'cuda'                     # device to run on (cuda, cpu, mps, or device ID)
+
+# Model Configuration  
+name: fire_detection_model         # experiment name for saving results
+project: runs/train                # project directory for saving results
+exist_ok: false                    # overwrite existing experiment
+pretrained: true                   # use pretrained weights
+verbose: true                      # verbose output
+
+# Optimization Parameters
+optimizer: 'auto'                  # optimizer (SGD, Adam, AdamW, NAdam, RAdam, RMSProp)
+lr0: 0.01                         # initial learning rate
+lrf: 0.01                         # final learning rate fraction
+momentum: 0.937                   # SGD momentum/Adam beta1
+weight_decay: 0.0005              # optimizer weight decay
+warmup_epochs: 3.0                # warmup epochs
+warmup_momentum: 0.8              # warmup initial momentum
+warmup_bias_lr: 0.1               # warmup initial bias lr
+box: 7.5                          # box loss gain
+cls: 0.5                          # cls loss gain
+dfl: 1.5                          # dfl loss gain
+
+# Data Augmentation
+hsv_h: 0.015                      # image HSV-Hue augmentation (fraction)
+hsv_s: 0.7                        # image HSV-Saturation augmentation (fraction)
+hsv_v: 0.4                        # image HSV-Value augmentation (fraction)
+degrees: 0.0                      # image rotation (+/- deg)
+translate: 0.1                    # image translation (+/- fraction)
+scale: 0.5                        # image scale (+/- gain)
+shear: 0.0                        # image shear (+/- deg)
+perspective: 0.0                  # image perspective (+/- fraction)
+flipud: 0.0                       # image flip up-down (probability)
+fliplr: 0.5                       # image flip left-right (probability)
+mosaic: 1.0                       # image mosaic (probability)
+mixup: 0.0                        # image mixup (probability)
+copy_paste: 0.0                   # segment copy-paste (probability)
+
+# Validation Parameters
+val: true                         # validate/test during training
+split: val                        # dataset split to use for validation (train/val/test)
+save_period: -1                   # save checkpoint every x epochs (-1 to disable)
+save: true                        # save train checkpoints and predictions
+save_conf: false                  # save auto-label confidences
+plots: true                       # save plots during training
+deterministic: true               # whether to enable deterministic mode
+
+# Advanced Parameters
+workers: 8                        # max dataloader workers (per RANK in multi-GPU trainings)
+single_cls: false                 # train multi-class data as single-class
+rect: false                       # rectangular training
+cos_lr: false                     # cosine LR scheduler
+close_mosaic: 10                  # disable mosaic augmentation for final epochs
+resume: false                     # resume training from last checkpoint
+amp: true                         # Automatic Mixed Precision (AMP) training
+fraction: 1.0                     # dataset fraction to train on
+profile: false                    # profile ONNX and TensorRT speeds during training
+freeze: null                      # freeze layers: backbone=10, first3=0 1 2
+overlap_mask: true                # masks should overlap during training
+mask_ratio: 4                     # mask downsample ratio
+dropout: 0.0                      # use dropout regularization

@@ -25,6 +25,8 @@ class TrainingDashboard {
         this.epochCounterDisplay = document.getElementById('epoch-counter');
         this.progressFill = document.getElementById('progress-fill');
         this.progressPercentage = document.getElementById('progress-percentage');
+        this.batchInfoDisplay = document.getElementById('batch-info');
+        this.gpuMemoryDisplay = document.getElementById('gpu-memory');
         this.epochElapsedTime = document.getElementById('epoch-elapsed-time');
         this.estimatedRemainingTime = document.getElementById('estimated-remaining-time');
         
@@ -43,9 +45,6 @@ class TrainingDashboard {
         this.detectionStatusDisplay = document.getElementById('detection-status');
         this.detectionResultsDisplay = document.getElementById('detection-results');
         
-        // Console elements
-        this.consoleOutput = document.getElementById('console-output');
-        this.clearConsoleButton = document.getElementById('clear-console');
     }
 
     attachEventListeners() {
@@ -62,8 +61,6 @@ class TrainingDashboard {
         this.browseOutputPathButton.addEventListener('click', () => this.browseFile('output'));
         this.startDetectionButton.addEventListener('click', () => this.startDetection());
         
-        // Console listeners
-        this.clearConsoleButton.addEventListener('click', () => this.clearConsole());
     }
 
     startTraining() {
@@ -78,15 +75,77 @@ class TrainingDashboard {
         if (!this.validateConfig(config)) return;
 
         this.isTraining = true;
+        this.showInitializingState();
         this.initializeTrainingTimers();
         this.updateUI();
         this.startRealTraining(config);
     }
     
+    showInitializingState() {
+        // Hide progress section and show initializing text
+        const progressSection = document.querySelector('.training-progress-section');
+        if (progressSection) {
+            progressSection.style.display = 'none';
+        }
+        
+        // Create or show initializing overlay
+        let initializingOverlay = document.getElementById('initializing-overlay');
+        if (!initializingOverlay) {
+            initializingOverlay = document.createElement('div');
+            initializingOverlay.id = 'initializing-overlay';
+            initializingOverlay.innerHTML = '<div class="initializing-text">INITIALIZING...</div>';
+            initializingOverlay.style.cssText = `
+                position: relative;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                padding: 40px;
+                margin: 20px 0;
+                border-radius: 10px;
+                text-align: center;
+                font-size: 24px;
+                font-weight: bold;
+                animation: pulse 2s infinite;
+            `;
+            
+            // Add CSS animation
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes pulse {
+                    0% { opacity: 1; }
+                    50% { opacity: 0.7; }
+                    100% { opacity: 1; }
+                }
+            `;
+            document.head.appendChild(style);
+            
+            progressSection.parentNode.insertBefore(initializingOverlay, progressSection);
+        } else {
+            initializingOverlay.style.display = 'block';
+        }
+    }
+
+    hideInitializingState() {
+        // Show progress section and hide initializing text
+        const progressSection = document.querySelector('.training-progress-section');
+        const initializingOverlay = document.getElementById('initializing-overlay');
+        
+        if (progressSection) {
+            progressSection.style.display = 'block';
+        }
+        if (initializingOverlay) {
+            initializingOverlay.style.display = 'none';
+        }
+    }
+
     initializeTrainingTimers() {
         this.trainingStartTime = Date.now();
         this.epochStartTime = null;
         this.epochDurations = [];
+        this.trainingInitialized = false;
+        this.lastGpuMemory = null;
+        
+        // Start independent elapsed time timer
+        this.startIndependentTimer();
         
         // Reset display values
         this.epochElapsedTime.textContent = '-';
@@ -94,6 +153,34 @@ class TrainingDashboard {
         this.epochCounterDisplay.textContent = '-';
         this.progressFill.style.width = '0%';
         this.progressPercentage.textContent = '0%';
+        this.batchInfoDisplay.textContent = '-';
+        this.gpuMemoryDisplay.textContent = '-';
+    }
+
+    startIndependentTimer() {
+        // Start a timer that updates elapsed time independently of YOLO output
+        if (this.independentTimer) {
+            clearInterval(this.independentTimer);
+        }
+        
+        this.independentTimer = setInterval(() => {
+            if (this.trainingStartTime && this.isTraining) {
+                const totalElapsed = (Date.now() - this.trainingStartTime) / 1000;
+                const hours = Math.floor(totalElapsed / 3600);
+                const minutes = Math.floor((totalElapsed % 3600) / 60);
+                const seconds = Math.floor(totalElapsed % 60);
+                
+                const timeString = hours > 0 ? 
+                    `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}` :
+                    `${minutes}:${seconds.toString().padStart(2, '0')}`;
+                
+                // Update total elapsed time display (you can add a new element for this)
+                // For now, we'll update the epoch elapsed time if YOLO isn't providing its own timing
+                if (this.epochElapsedTime && this.epochElapsedTime.textContent === '-') {
+                    this.epochElapsedTime.textContent = timeString;
+                }
+            }
+        }, 1000);
     }
 
     validateConfig(config) {
@@ -146,15 +233,67 @@ class TrainingDashboard {
     }
 
     updateMetrics(metrics) {
-        // Update epoch counter
-        this.epochCounterDisplay.textContent = `${metrics.epoch}/${metrics.totalEpochs}`;
+        console.log('[DEBUG] updateMetrics called with:', metrics);
         
-        // Update progress bar and percentage
-        this.progressFill.style.width = `${metrics.progress}%`;
-        this.progressPercentage.textContent = `${Math.round(metrics.progress)}%`;
-        
-        // Update timing information
-        this.updateTimingInfo(metrics.epoch, metrics.totalEpochs);
+        try {
+            // Update epoch counter
+            if (this.epochCounterDisplay) {
+                this.epochCounterDisplay.textContent = `${metrics.epoch}/${metrics.totalEpochs}`;
+                console.log('[DEBUG] Updated epoch counter:', `${metrics.epoch}/${metrics.totalEpochs}`);
+            } else {
+                console.error('[DEBUG] epochCounterDisplay element not found!');
+            }
+            
+            // Update progress bar and percentage
+            if (this.progressFill && this.progressPercentage) {
+                this.progressFill.style.width = `${metrics.progress}%`;
+                this.progressPercentage.textContent = `${Math.round(metrics.progress)}%`;
+                console.log('[DEBUG] Updated progress:', `${Math.round(metrics.progress)}%`);
+            } else {
+                console.error('[DEBUG] Progress elements not found!');
+            }
+            
+            // Update batch information if available
+            if (this.batchInfoDisplay) {
+                if (metrics.currentBatch && metrics.totalBatches) {
+                    this.batchInfoDisplay.textContent = `Batch ${metrics.currentBatch}/${metrics.totalBatches}`;
+                    if (metrics.iterationSpeed) {
+                        this.batchInfoDisplay.textContent += ` (${metrics.iterationSpeed}it/s)`;
+                    }
+                    console.log('[DEBUG] Updated batch info:', this.batchInfoDisplay.textContent);
+                } else {
+                    this.batchInfoDisplay.textContent = 'Training...';
+                }
+            }
+            
+            // Update GPU memory if available
+            if (this.gpuMemoryDisplay) {
+                if (metrics.gpuMemory) {
+                    this.gpuMemoryDisplay.textContent = metrics.gpuMemory;
+                    console.log('[DEBUG] Updated GPU memory:', metrics.gpuMemory);
+                    // Store the latest GPU memory value
+                    this.lastGpuMemory = metrics.gpuMemory;
+                } else if (this.lastGpuMemory) {
+                    // Keep showing the last known GPU memory value
+                    this.gpuMemoryDisplay.textContent = this.lastGpuMemory;
+                } else {
+                    this.gpuMemoryDisplay.textContent = 'N/A';
+                }
+            }
+            
+            // Update timing information - use YOLO's timing if available
+            if (metrics.elapsedTime && metrics.remainingTime) {
+                if (this.epochElapsedTime) this.epochElapsedTime.textContent = metrics.elapsedTime;
+                if (this.estimatedRemainingTime) this.estimatedRemainingTime.textContent = metrics.remainingTime;
+                console.log('[DEBUG] Updated timing from YOLO:', metrics.elapsedTime, metrics.remainingTime);
+            } else {
+                this.updateTimingInfo(metrics.epoch, metrics.totalEpochs);
+            }
+            
+            console.log('[DEBUG] updateMetrics completed successfully');
+        } catch (error) {
+            console.error('[DEBUG] Error in updateMetrics:', error);
+        }
     }
     
     updateTimingInfo(currentEpoch, totalEpochs) {
@@ -224,6 +363,7 @@ class TrainingDashboard {
     trainingComplete() {
         this.isTraining = false;
         this.stopEpochTimer();
+        this.stopIndependentTimer();
         this.updateUI();
         
         this.statusDisplay.textContent = 'Training Complete!';
@@ -241,6 +381,13 @@ class TrainingDashboard {
             this.statusDisplay.style.background = '';
             this.statusDisplay.style.color = '';
         }, 3000);
+    }
+
+    stopIndependentTimer() {
+        if (this.independentTimer) {
+            clearInterval(this.independentTimer);
+            this.independentTimer = null;
+        }
     }
 
     // Method to connect to real backend (for future implementation)
@@ -428,21 +575,37 @@ Results saved to: ${outputResultsPath}`;
             
             // Listen for training updates
             this.socket.on('training_update', (data) => {
+                console.log('[DEBUG] Received training_update:', data);
+                
+                // Hide initializing state when we get the first real update
+                if (!this.trainingInitialized) {
+                    this.hideInitializingState();
+                    this.trainingInitialized = true;
+                }
+                
                 // Check if this is a new epoch to start timer
                 const isNewEpoch = !this.epochStartTime || data.epoch !== this.currentEpoch;
                 if (isNewEpoch) {
                     this.stopEpochTimer();
                     this.startEpochTimer();
                     this.currentEpoch = data.epoch;
+                    console.log('[DEBUG] Started new epoch timer for epoch:', data.epoch);
                 }
                 
                 this.updateMetrics({
                     epoch: data.epoch,
                     totalEpochs: data.total_epochs,
-                    loss: data.loss,
-                    map: data.map,
-                    progress: data.progress
+                    progress: data.progress,
+                    gpuMemory: data.gpu_memory,
+                    batchProgress: data.batch_progress,
+                    currentBatch: data.current_batch,
+                    totalBatches: data.total_batches,
+                    iterationSpeed: data.iteration_speed,
+                    elapsedTime: data.elapsed_time,
+                    remainingTime: data.remaining_time
                 });
+                
+                console.log('[DEBUG] Updated metrics display');
             });
             
             // Listen for training start
@@ -462,35 +625,26 @@ Results saved to: ${outputResultsPath}`;
                 this.trainingError(data.error);
             });
             
-            // Listen for console output
-            this.socket.on('console_output', (data) => {
-                this.addConsoleOutput(data.line);
-            });
             
             // Listen for connection status
             this.socket.on('connect', () => {
-                console.log('Connected to training server');
-                this.addConsoleOutput('Connected to training server', 'success');
+                console.log('[DEBUG] Connected to training server - Socket ID:', this.socket.id);
             });
             
             this.socket.on('disconnect', () => {
-                console.log('Disconnected from training server');
-                this.addConsoleOutput('Disconnected from training server', 'warning');
+                console.log('[DEBUG] Disconnected from training server');
             });
             
             this.socket.on('connect_error', (error) => {
-                console.error('Socket.IO connection error:', error);
-                this.addConsoleOutput(`Connection error: ${error.message}`, 'error');
+                console.error('[DEBUG] Socket.IO connection error:', error);
             });
             
             this.socket.on('reconnect', () => {
-                console.log('Reconnected to training server');
-                this.addConsoleOutput('Reconnected to training server', 'success');
+                console.log('[DEBUG] Reconnected to training server');
             });
             
         } else {
             console.warn('Socket.IO not available - falling back to simulation mode');
-            this.addConsoleOutput('Socket.IO not available - using simulation mode', 'warning');
         }
     }
 
@@ -528,6 +682,7 @@ Results saved to: ${outputResultsPath}`;
     trainingError(errorMessage) {
         this.isTraining = false;
         this.stopEpochTimer();
+        this.stopIndependentTimer();
         this.updateUI();
         
         this.statusDisplay.textContent = `Training Error: ${errorMessage}`;
@@ -588,32 +743,6 @@ Results saved to: ${outputResultsPath}`;
         }, 500); // Check every 500ms for smooth updates
     }
 
-    // Console Methods
-    addConsoleOutput(line, type = 'normal') {
-        if (!this.consoleOutput) return;
-        
-        const timestamp = new Date().toLocaleTimeString();
-        const consoleLineDiv = document.createElement('div');
-        consoleLineDiv.className = `console-line ${type}`;
-        consoleLineDiv.textContent = `[${timestamp}] ${line}`;
-        
-        this.consoleOutput.appendChild(consoleLineDiv);
-        
-        // Auto-scroll to bottom
-        this.consoleOutput.scrollTop = this.consoleOutput.scrollHeight;
-        
-        // Limit console output to 500 lines
-        const lines = this.consoleOutput.children;
-        if (lines.length > 500) {
-            this.consoleOutput.removeChild(lines[0]);
-        }
-    }
-    
-    clearConsole() {
-        if (this.consoleOutput) {
-            this.consoleOutput.innerHTML = '<div class="console-line">Console cleared...</div>';
-        }
-    }
 }
 
 // Initialize dashboard when page loads
