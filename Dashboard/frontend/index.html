@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Fire Detection Dashboard</title>
-    <link rel="stylesheet" href="../static/css/styles.css">
+    <link rel="stylesheet" href="/static/css/styles.css">
 </head>
 <body>
     <div class="container">
@@ -57,44 +57,78 @@
             </div>
         </div>
 
-        <div class="status-section">
-            <div id="training-status" class="status-display">
-                Ready to start training
-            </div>
-        </div>
-
         <div class="training-progress-section">
+            <!-- Glass Blur Overlay for Training Status -->
+            <div id="training-status-overlay" class="glass-overlay visible">
+                <div class="glass-content">
+                    <div id="training-status-text">Ready to start training</div>
+                </div>
+            </div>
+            
             <h2>Training Progress</h2>
             <div class="progress-grid">
                 <div class="progress-card">
                     <h3>Epoch</h3>
-                    <div id="epoch-counter" class="progress-value">-</div>
-                    <div class="progress-subtitle">Current / Total</div>
+                    <div class="epoch-display">
+                        <div id="current-epoch" class="epoch-current">-</div>
+                        <div class="epoch-current-label">Current</div>
+                        <div id="total-epochs" class="epoch-total">-</div>
+                        <div class="epoch-total-label">TOTAL</div>
+                    </div>
                 </div>
                 <div class="progress-card">
                     <h3>Progress</h3>
                     <div class="progress-container">
-                        <div class="progress-bar">
-                            <div id="progress-fill" class="progress-fill"></div>
+                        <div class="progress-item">
+                            <div class="progress-label">Current Epoch</div>
+                            <div class="progress-bar">
+                                <div id="epoch-progress-fill" class="progress-fill"></div>
+                            </div>
+                            <div id="epoch-progress-percentage" class="progress-text">0%</div>
                         </div>
-                        <div id="progress-percentage" class="progress-text">0%</div>
-                        <div id="batch-info" class="progress-subtitle">-</div>
+                        <div class="progress-item">
+                            <div class="progress-label">Total Progress</div>
+                            <div class="progress-bar">
+                                <div id="total-progress-fill" class="progress-fill"></div>
+                            </div>
+                            <div id="total-progress-percentage" class="progress-text">0%</div>
+                        </div>
                     </div>
                 </div>
                 <div class="progress-card">
                     <h3>GPU Memory</h3>
-                    <div id="gpu-memory" class="progress-value">-</div>
-                    <div class="progress-subtitle">Usage</div>
+                    <div class="gpu-memory-container">
+                        <div class="gpu-memory-usage">
+                            <div id="gpu-memory" class="gpu-memory-value">-</div>
+                            <div class="gpu-memory-total">/ 16GB</div>
+                        </div>
+                        <div class="gpu-progress-container">
+                            <div class="gpu-progress-bar">
+                                <div id="gpu-progress-fill" class="gpu-progress-fill"></div>
+                            </div>
+                            <div class="gpu-percentage">
+                                <span id="gpu-percentage">0%</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div class="progress-card">
-                    <h3>Elapsed Time</h3>
-                    <div id="epoch-elapsed-time" class="progress-value">-</div>
-                    <div class="progress-subtitle">Current Epoch</div>
+                    <h3>Current Epoch</h3>
+                    <div class="epoch-time-display">
+                        <div id="estimated-remaining-time" class="epoch-time-value">-</div>
+                        <div class="epoch-time-label">Remaining Time</div>
+                        <div id="epoch-elapsed-time" class="epoch-time-value-muted">-</div>
+                        <div class="epoch-time-label-muted">Elapsed Time</div>
+                    </div>
                 </div>
                 <div class="progress-card">
-                    <h3>Remaining Time</h3>
-                    <div id="estimated-remaining-time" class="progress-value">-</div>
-                    <div class="progress-subtitle">Estimated</div>
+                    <h3>Total Time</h3>
+                    <div class="total-time-display">
+                        <div id="total-remaining-time" class="total-time-value">-</div>
+                        <div class="total-time-label">Remaining Time</div>
+                        <div id="total-elapsed-time" class="total-time-value-muted">-</div>
+                        <div class="total-time-label-muted">Elapsed Time</div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -108,18 +142,25 @@
                 
                 <div class="config-grid">
                     <div class="config-item">
-                        <label for="test-file-path">Test File Path:</label>
+                        <label for="trained-model-select">Select Trained Model:</label>
+                        <select id="trained-model-select" name="trained-model-select">
+                            <option value="">Loading models...</option>
+                        </select>
+                    </div>
+
+                    <div class="config-item">
+                        <label for="test-file-path">Test Files Folder:</label>
                         <div class="file-input-group">
-                            <input type="text" id="test-file-path" name="test-file-path" placeholder="Enter path to test file (jpeg, mp4, png)">
-                            <button type="button" class="btn-browse" id="browse-test-file">Browse</button>
+                            <input type="text" id="test-file-path" name="test-file-path" placeholder="Select folder containing test files (jpeg, mp4, png)">
+                            <button type="button" class="btn-browse" id="browse-test-folder">Browse Folder</button>
                         </div>
                     </div>
 
                     <div class="config-item">
-                        <label for="output-results-path">Output Results Path:</label>
+                        <label for="output-results-path">Output Results Folder:</label>
                         <div class="file-input-group">
-                            <input type="text" id="output-results-path" name="output-results-path" placeholder="Enter output results path">
-                            <button type="button" class="btn-browse" id="browse-output-path">Browse</button>
+                            <input type="text" id="output-results-path" name="output-results-path" placeholder="Select output folder for results">
+                            <button type="button" class="btn-browse" id="browse-output-folder">Browse Folder</button>
                         </div>
                     </div>
 
@@ -144,7 +185,53 @@
         </div>
     </div>
 
+    <!-- Resume Training Dialog -->
+    <div id="resume-training-dialog" class="dialog-overlay hidden">
+        <div class="dialog-box">
+            <div class="dialog-header">
+                <h3>🔥 Unfinished Training Detected</h3>
+                <button id="close-resume-dialog" class="dialog-close">&times;</button>
+            </div>
+            <div class="dialog-content">
+                <div class="resume-info">
+                    <div class="resume-progress">
+                        <div class="resume-progress-bar">
+                            <div id="resume-progress-fill" class="resume-progress-fill"></div>
+                        </div>
+                        <div id="resume-progress-text" class="resume-progress-text">0%</div>
+                    </div>
+                    <div class="resume-details">
+                        <div class="resume-detail">
+                            <span class="resume-label">Current Epoch:</span>
+                            <span id="resume-current-epoch" class="resume-value">0</span>
+                        </div>
+                        <div class="resume-detail">
+                            <span class="resume-label">Total Epochs:</span>
+                            <span id="resume-total-epochs" class="resume-value">100</span>
+                        </div>
+                        <div class="resume-detail">
+                            <span class="resume-label">Checkpoint:</span>
+                            <span id="resume-checkpoint-type" class="resume-value">last.pt</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="resume-message">
+                    <p>We found an unfinished training run. Would you like to continue where you left off?</p>
+                </div>
+                <div class="resume-config">
+                    <label for="resume-additional-epochs">Additional epochs to train:</label>
+                    <input type="number" id="resume-additional-epochs" value="50" min="1" max="1000">
+                </div>
+            </div>
+            <div class="dialog-actions">
+                <button id="resume-training-btn" class="btn-primary">Resume Training</button>
+                <button id="start-new-training-btn" class="btn-secondary">Start New Training</button>
+                <button id="cancel-resume-btn" class="btn-cancel">Cancel</button>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
-    <script src="../static/js/dashboard.js"></script>
+    <script src="/static/js/dashboard.js"></script>
 </body>
 </html>

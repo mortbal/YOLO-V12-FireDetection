@@ -119,8 +119,8 @@ header h1 {
 }
 
 .status-display.training {
-    background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
-    color: #721c24;
+    background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);
+    color: white;
     animation: pulse 2s infinite;
 }
 
@@ -178,6 +178,49 @@ header h1 {
     margin-bottom: 5px;
 }
 
+/* Epoch Display Styles */
+.epoch-display {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+}
+
+.epoch-current {
+    font-size: 3.2rem;
+    font-weight: bold;
+    color: #667eea;
+    line-height: 1;
+    margin-bottom: 2px;
+}
+
+.epoch-current-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #667eea;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+}
+
+.epoch-total {
+    font-size: 1.8rem;
+    font-weight: 600;
+    color: #8a92d1;
+    line-height: 1;
+    opacity: 0.8;
+    margin-bottom: 2px;
+}
+
+.epoch-total-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #8a92d1;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    opacity: 0.8;
+}
+
 .progress-subtitle {
     font-size: 0.75rem;
     color: #718096;
@@ -190,7 +233,24 @@ header h1 {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 10px;
+    gap: 15px;
+}
+
+.progress-item {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.progress-label {
+    font-size: 0.75rem;
+    color: #718096;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+    margin-bottom: 5px;
 }
 
 .progress-bar {
@@ -227,6 +287,135 @@ header h1 {
     font-weight: 700;
     color: #667eea;
     margin-top: 8px;
+}
+
+/* GPU Memory Styles - Circular Progress Design */
+.gpu-memory-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+    padding: 10px 0;
+}
+
+.gpu-memory-usage {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+    margin-bottom: 5px;
+}
+
+.gpu-memory-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #667eea;
+    line-height: 1;
+}
+
+.gpu-memory-total {
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: #8a92d1;
+    opacity: 0.8;
+}
+
+.gpu-progress-container {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    padding: 10px 0;
+    width: 100%;
+}
+
+.gpu-progress-bar {
+    width: 100%;
+    height: 24px;
+    background: #e2e8f0;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.gpu-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #22c55e 0%, #eab308 60%, #dc2626 100%);
+    transition: width 0.8s ease;
+    width: 0%;
+    border-radius: 12px;
+    position: relative;
+}
+
+.gpu-progress-fill::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 50%;
+    background: linear-gradient(90deg, rgba(255,255,255,0.3), rgba(255,255,255,0.1));
+    border-radius: 12px 12px 0 0;
+}
+
+.gpu-percentage {
+    text-align: center;
+    width: 100%;
+}
+
+.gpu-percentage span {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #4a5568;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+/* Time Display Styles */
+.epoch-time-display, .total-time-display {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+}
+
+.epoch-time-value, .total-time-value {
+    font-size: 1.8rem;
+    font-weight: bold;
+    color: #667eea;
+    line-height: 1;
+    margin-bottom: 2px;
+}
+
+.epoch-time-value-muted, .total-time-value-muted {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #8a92d1;
+    line-height: 1;
+    opacity: 0.8;
+    margin-bottom: 2px;
+}
+
+.epoch-time-label, .total-time-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: #667eea;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+    text-align: center;
+}
+
+.epoch-time-label-muted, .total-time-label-muted {
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: #8a92d1;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    opacity: 0.8;
+    text-align: center;
 }
 
 /* Tab Styles */
@@ -417,9 +606,298 @@ header h1 {
         font-size: 1.5rem;
     }
     
+    .gpu-progress-bar {
+        height: 20px;
+    }
+    
+    .gpu-percentage span {
+        font-size: 1.1rem;
+    }
+    
+    .gpu-memory-value {
+        font-size: 1.6rem;
+    }
+    
+    .gpu-memory-total {
+        font-size: 1rem;
+    }
+    
     header h1 {
         font-size: 2rem;
     }
+}
+
+/* Glass Blur Overlay Styles */
+.glass-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    transition: opacity 0.5s ease, visibility 0.5s ease;
+}
+
+.glass-overlay.hidden {
+    opacity: 0;
+    visibility: hidden;
+}
+
+.glass-overlay.visible {
+    opacity: 1;
+    visibility: visible;
+}
+
+.glass-overlay.fade-out {
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 1s ease, visibility 1s ease;
+}
+
+.glass-content {
+    text-align: center;
+    padding: 40px;
+}
+
+.glass-content #training-status-text {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #4299e1;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    animation: pulse 2s infinite;
+}
+
+/* Position overlay relative to train tab content */
+#train-tab {
+    position: relative;
+}
+
+/* Ensure training progress section shows the overlay */
+.training-progress-section {
+    position: relative;
+}
+
+/* Dialog Styles */
+.dialog-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.dialog-overlay.hidden {
+    opacity: 0;
+    visibility: hidden;
+}
+
+.dialog-box {
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    max-width: 500px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+    transform: scale(0.9);
+    transition: transform 0.3s ease;
+}
+
+.dialog-overlay:not(.hidden) .dialog-box {
+    transform: scale(1);
+}
+
+.dialog-header {
+    padding: 25px 25px 15px 25px;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.dialog-header h3 {
+    color: #4a5568;
+    font-size: 1.5rem;
+    margin: 0;
+}
+
+.dialog-close {
+    background: none;
+    border: none;
+    font-size: 1.8rem;
+    color: #718096;
+    cursor: pointer;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: background-color 0.3s ease;
+}
+
+.dialog-close:hover {
+    background-color: #f7fafc;
+}
+
+.dialog-content {
+    padding: 20px 25px;
+}
+
+.resume-info {
+    margin-bottom: 20px;
+}
+
+.resume-progress {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.resume-progress-bar {
+    flex: 1;
+    height: 20px;
+    background: #e2e8f0;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.resume-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #667eea, #764ba2);
+    transition: width 0.5s ease;
+    width: 0%;
+    border-radius: 10px;
+    position: relative;
+}
+
+.resume-progress-fill::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 50%;
+    background: linear-gradient(90deg, rgba(255,255,255,0.3), rgba(255,255,255,0.1));
+    border-radius: 10px 10px 0 0;
+}
+
+.resume-progress-text {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #667eea;
+    min-width: 50px;
+}
+
+.resume-details {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 10px;
+    background: #f7fafc;
+    padding: 15px;
+    border-radius: 10px;
+}
+
+.resume-detail {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.resume-label {
+    font-size: 0.8rem;
+    color: #718096;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.resume-value {
+    font-size: 1.1rem;
+    color: #4a5568;
+    font-weight: 600;
+}
+
+.resume-message {
+    margin: 20px 0;
+    text-align: center;
+}
+
+.resume-message p {
+    color: #4a5568;
+    font-size: 1.1rem;
+    line-height: 1.5;
+    margin: 0;
+}
+
+.resume-config {
+    margin: 20px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.resume-config label {
+    font-weight: 600;
+    color: #4a5568;
+    font-size: 0.95rem;
+}
+
+.resume-config input {
+    padding: 12px;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: border-color 0.3s ease;
+}
+
+.resume-config input:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+.dialog-actions {
+    padding: 15px 25px 25px 25px;
+    border-top: 1px solid #e2e8f0;
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+.btn-cancel {
+    background: #f7fafc;
+    color: #4a5568;
+    padding: 12px 20px;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-cancel:hover {
+    background: #e2e8f0;
+    border-color: #cbd5e0;
 }
 
 @media (max-width: 480px) {
@@ -429,5 +907,31 @@ header h1 {
     
     .progress-card {
         padding: 18px;
+    }
+    
+    .glass-content #training-status-text {
+        font-size: 1.4rem;
+    }
+    
+    .dialog-box {
+        width: 95%;
+        margin: 20px;
+    }
+    
+    .dialog-header {
+        padding: 20px 20px 15px 20px;
+    }
+    
+    .dialog-content {
+        padding: 15px 20px;
+    }
+    
+    .dialog-actions {
+        padding: 15px 20px 20px 20px;
+        flex-direction: column;
+    }
+    
+    .resume-details {
+        grid-template-columns: 1fr;
     }
 }
