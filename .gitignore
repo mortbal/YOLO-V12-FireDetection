@@ -1,6 +1,7 @@
 # Dataset folder - contains large training/validation images
-YoloAssets\dataset\dataset\
-TrainedModels\
+YoloAssets\dataset\
+DetectionTest\
+YoloAssets\TrainedModels\
 # Training runs and model outputs
 runs/
 

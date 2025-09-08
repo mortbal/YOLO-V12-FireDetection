@@ -1,16 +1,31 @@
-# Minimal YOLO Training Configuration
-# Only specify parameters you want to customize
-# All other parameters will use YOLO defaults
+# YOLO Training Configuration
+# This file contains all training parameters
 
-# Essential parameters
+# Model Configuration
+model: yolo11n.pt  # Path to the model file (will be updated by dashboard)
+model_type: base   # Type: base, trained, checkpoint
+
+# Training Parameters
+batch: 0.9
 data: YoloAssets/dataset/data.yaml
-epochs: 3
-batch: 0.5
+device: cuda
+epochs: 100
 imgsz: 640
 name: fire_detection_model
-project: YoloAssets/runs/train
-
-# Optional customizations (remove any you don't need)
-device: cuda
-save: true
 plots: true
+project: YoloAssets/runs/train
+save: true
+
+# Additional Training Settings
+patience: 100
+optimizer: auto
+lr0: 0.01
+lrf: 0.01
+momentum: 0.937
+weight_decay: 0.0005
+warmup_epochs: 3.0
+warmup_momentum: 0.8
+warmup_bias_lr: 0.1
+box: 7.5
+cls: 0.5
+dfl: 1.5

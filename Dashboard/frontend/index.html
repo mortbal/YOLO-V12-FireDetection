@@ -7,18 +7,50 @@
     <link rel="stylesheet" href="/static/css/styles.css">
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>🔥 Fire Detection System Dashboard</h1>
-        </header>
-
-        <!-- Tab Navigation -->
-        <div class="tabs-container">
-            <div class="tab-buttons">
-                <button class="tab-button active" data-tab="train">Train</button>
-                <button class="tab-button" data-tab="test">Test</button>
+    <!-- Sidebar Navigation -->
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <button class="sidebar-toggle" id="sidebar-toggle">
+                <span class="toggle-icon">☰</span>
+            </button>
+            <div class="logo">
+                <img src="../static/assets/icons/Logo.svg" alt="Fire Detection Logo" class="logo-icon">
+                <span class="logo-text">Fire Detection</span>
             </div>
         </div>
+        
+        <nav class="sidebar-nav">
+            <ul class="nav-list">
+                <li class="nav-item active" data-tab="train">
+                    <button class="nav-button">
+                        <img src="../static/assets/icons/icon-train.png" alt="Train" class="nav-icon">
+                        <span class="nav-text">Train Model</span>
+                    </button>
+                </li>
+                <li class="nav-item" data-tab="test">
+                    <button class="nav-button">
+                        <img src="../static/assets/icons/icon-scan.png" alt="Test" class="nav-icon">
+                        <span class="nav-text">Test Detection</span>
+                    </button>
+                </li>
+                <li class="nav-item" data-tab="live">
+                    <button class="nav-button">
+                        <img src="../static/assets/icons/icon-live.png" alt="Live" class="nav-icon">
+                        <span class="nav-text">Live Detection</span>
+                    </button>
+                </li>
+            </ul>
+        </nav>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content" id="main-content">
+        <header class="main-header">
+            <h1><img src="../static/assets/icons/Logo.svg" alt="Fire Detection Logo" class="header-logo">Fire Detection System Dashboard</h1>
+            <p class="header-subtitle">AI-Powered Fire and Smoke Detection Platform</p>
+        </header>
+
+        <div class="content-wrapper">
 
         <!-- Train Tab Content -->
         <div id="train-tab" class="tab-content active">
@@ -27,22 +59,9 @@
             
             <div class="config-grid">
                 <div class="config-item">
-                    <label for="yolo-version">YOLO Version:</label>
-                    <select id="yolo-version" name="yolo-version">
-                        <option value="10">YOLOv10</option>
-                        <option value="11" selected>YOLOv11</option>
-                        <option value="12">YOLOv12</option>
-                    </select>
-                </div>
-
-                <div class="config-item">
-                    <label for="model-size">Model Size:</label>
-                    <select id="model-size" name="model-size">
-                        <option value="n" selected>Nano (n)</option>
-                        <option value="s">Small (s)</option>
-                        <option value="m">Medium (m)</option>
-                        <option value="l">Large (l)</option>
-                        <option value="x">Extra Large (x)</option>
+                    <label for="model-select">Select Model:</label>
+                    <select id="model-select" name="model-select">
+                        <option value="">Loading available models...</option>
                     </select>
                 </div>
 
@@ -137,53 +156,228 @@
 
         <!-- Test Tab Content -->
         <div id="test-tab" class="tab-content">
-            <div class="control-panel">
-                <h2>Fire Detection Testing</h2>
+            <div class="test-panel">
+                <div class="test-header">
+                    <h2>🔍 Fire Detection Testing</h2>
+                    <p class="test-description">Configure your test settings and run fire detection on your media files</p>
+                </div>
                 
-                <div class="config-grid">
-                    <div class="config-item">
-                        <label for="trained-model-select">Select Trained Model:</label>
-                        <select id="trained-model-select" name="trained-model-select">
-                            <option value="">Loading models...</option>
-                        </select>
-                    </div>
-
-                    <div class="config-item">
-                        <label for="test-file-path">Test Files Folder:</label>
-                        <div class="file-input-group">
-                            <input type="text" id="test-file-path" name="test-file-path" placeholder="Select folder containing test files (jpeg, mp4, png)">
-                            <button type="button" class="btn-browse" id="browse-test-folder">Browse Folder</button>
+                <!-- Configuration Section -->
+                <div class="test-config-section">
+                    <h3 class="section-title">📁 File Configuration</h3>
+                    
+                    <!-- First Row: Folder Inputs -->
+                    <div class="folder-config-row">
+                        <div class="folder-input-card">
+                            <div class="input-header">
+                                <span class="input-icon">📂</span>
+                                <label for="test-files-folder" class="input-label">Test Files Folder</label>
+                            </div>
+                            <div class="input-description">Select folder containing images/videos to test</div>
+                            <div class="file-input-container">
+                                <input type="text" id="test-files-folder" name="test-files-folder" value="../TestFiles" placeholder="Choose test files directory..." class="folder-input">
+                                <button type="button" class="btn-folder-browse" id="browse-test-folder">
+                                    <span class="browse-icon">📁</span>
+                                    Browse
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="folder-input-card">
+                            <div class="input-header">
+                                <span class="input-icon">💾</span>
+                                <label for="result-files-folder" class="input-label">Result Files Folder</label>
+                            </div>
+                            <div class="input-description">Select folder to save detection results</div>
+                            <div class="file-input-container">
+                                <input type="text" id="result-files-folder" name="result-files-folder" value="../ResultFiles" placeholder="Choose results output directory..." class="folder-input">
+                                <button type="button" class="btn-folder-browse" id="browse-result-folder">
+                                    <span class="browse-icon">💾</span>
+                                    Browse
+                                </button>
+                            </div>
                         </div>
                     </div>
-
-                    <div class="config-item">
-                        <label for="output-results-path">Output Results Folder:</label>
-                        <div class="file-input-group">
-                            <input type="text" id="output-results-path" name="output-results-path" placeholder="Select output folder for results">
-                            <button type="button" class="btn-browse" id="browse-output-folder">Browse Folder</button>
+                </div>
+                
+                <!-- Model Selection Section -->
+                <div class="test-config-section">
+                    <h3 class="section-title">🤖 Model Configuration</h3>
+                    
+                    <!-- Second Row: Model Selection and Detection Button -->
+                    <div class="model-config-row">
+                        <div class="model-select-card">
+                            <div class="input-header">
+                                <span class="input-icon">🎯</span>
+                                <label for="trained-model-select" class="input-label">Trained Model</label>
+                            </div>
+                            <div class="input-description">Choose a trained fire detection model</div>
+                            <select id="trained-model-select" name="trained-model-select" class="model-select">
+                                <option value="">Loading available models...</option>
+                            </select>
                         </div>
-                    </div>
-
-                    <div class="config-item">
-                        <button id="start-detection" class="btn-primary">Start Detection</button>
+                        
+                        <div class="detection-action-card">
+                            <div class="action-header">
+                                <span class="action-icon">🚀</span>
+                                <div class="action-title">Start Detection</div>
+                            </div>
+                            <div class="action-description">Run fire detection on selected files</div>
+                            <button id="start-detection" class="btn-start-detection">
+                                <span class="btn-icon">🔥</span>
+                                <span class="btn-text">Start Detection</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div class="status-section">
-                <div id="detection-status" class="status-display">
-                    Ready to start detection
+            <!-- Status Section -->
+            <div class="test-status-section">
+                <div class="status-card">
+                    <div class="status-header">
+                        <span class="status-icon">📊</span>
+                        <h3>Detection Status</h3>
+                    </div>
+                    <div id="detection-status" class="status-content">
+                        <span class="status-indicator">🟢</span>
+                        <span class="status-text">Ready to start detection</span>
+                    </div>
                 </div>
             </div>
 
-            <div class="results-section">
-                <h2>Detection Results</h2>
-                <div id="detection-results" class="results-display">
-                    No results yet
+            <!-- Results Section -->
+            <div class="test-results-section">
+                <div class="results-card">
+                    <div class="results-header">
+                        <span class="results-icon">📋</span>
+                        <h3>Detection Results</h3>
+                    </div>
+                    <div id="detection-results" class="results-content">
+                        <div class="no-results">
+                            <span class="no-results-icon">📝</span>
+                            <p>No detection results yet. Configure your settings and click "Start Detection" to begin.</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
+
+        <!-- Live Detection Tab Content -->
+        <div id="live-tab" class="tab-content">
+            <div class="live-panel">
+                <div class="live-header">
+                    <h2>📹 Live Fire Detection</h2>
+                    <p class="live-description">Real-time fire and smoke detection using your camera</p>
+                </div>
+                
+                <!-- Camera Configuration Section -->
+                <div class="live-config-section">
+                    <h3 class="section-title">📷 Camera Configuration</h3>
+                    
+                    <!-- First Row: Camera and Model Selection -->
+                    <div class="camera-config-row">
+                        <div class="camera-select-card">
+                            <div class="input-header">
+                                <span class="input-icon">🎥</span>
+                                <label for="camera-select" class="input-label">Select Camera</label>
+                            </div>
+                            <div class="input-description">Choose from available cameras on your device</div>
+                            <select id="camera-select" name="camera-select" class="camera-select">
+                                <option value="">Loading cameras...</option>
+                            </select>
+                        </div>
+                        
+                        <div class="live-model-select-card">
+                            <div class="input-header">
+                                <span class="input-icon">🤖</span>
+                                <label for="live-model-select" class="input-label">Detection Model</label>
+                            </div>
+                            <div class="input-description">Choose a trained fire detection model</div>
+                            <select id="live-model-select" name="live-model-select" class="model-select">
+                                <option value="">Loading available models...</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <!-- Second Row: Start Detection -->
+                    <div class="camera-config-row">
+                        <div class="camera-action-card">
+                            <div class="action-header">
+                                <span class="action-icon">▶️</span>
+                                <div class="action-title">Start Live Detection</div>
+                            </div>
+                            <div class="action-description">Begin real-time fire detection with AI</div>
+                            <button id="start-live-detection" class="btn-start-live">
+                                <span class="btn-icon">🔴</span>
+                                <span class="btn-text">Start Detection</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Camera Feed Section -->
+                <div class="camera-feed-section">
+                    <div class="feed-card">
+                        <div class="feed-header">
+                            <span class="feed-icon">📺</span>
+                            <h3>Camera Feed</h3>
+                            <div class="feed-status" id="feed-status">
+                                <span class="status-dot offline"></span>
+                                <span class="status-text">Camera Offline</span>
+                            </div>
+                        </div>
+                        
+                        <div class="camera-container" id="camera-container">
+                            <video id="camera-video" class="camera-video" autoplay muted playsinline></video>
+                            <img id="processed-frame" class="camera-video" style="display:none;" />
+                            <canvas id="detection-canvas" class="detection-overlay"></canvas>
+                            
+                            <!-- Camera placeholder when not active -->
+                            <div class="camera-placeholder" id="camera-placeholder">
+                                <div class="placeholder-content">
+                                    <span class="placeholder-icon">📷</span>
+                                    <h3>No Camera Active</h3>
+                                    <p>Select a camera and click "Start Camera" to begin live detection</p>
+                                </div>
+                            </div>
+                            
+                            <!-- Error state -->
+                            <div class="camera-error hidden" id="camera-error">
+                                <div class="error-content">
+                                    <span class="error-icon">⚠️</span>
+                                    <h3>Camera Error</h3>
+                                    <p id="error-message">Unable to access camera</p>
+                                    <button class="btn-retry" id="retry-camera">Try Again</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Detection Results Section -->
+                <div class="live-results-section">
+                    <div class="results-card">
+                        <div class="results-header">
+                            <span class="results-icon">🚨</span>
+                            <h3>Detection Results</h3>
+                            <div class="detection-count">
+                                <span class="fire-count">🔥 <span id="fire-count">0</span></span>
+                                <span class="smoke-count">💨 <span id="smoke-count">0</span></span>
+                            </div>
+                        </div>
+                        <div id="live-detection-log" class="detection-log">
+                            <div class="no-detections">
+                                <span class="no-detections-icon">🔍</span>
+                                <p>No detections yet. Start the camera to begin monitoring.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        </div> <!-- End content-wrapper -->
+    </div> <!-- End main-content -->
 
     <!-- Resume Training Dialog -->
     <div id="resume-training-dialog" class="dialog-overlay hidden">

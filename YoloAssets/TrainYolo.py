@@ -2,7 +2,6 @@ from ultralytics import YOLO
 import os
 import shutil
 import yaml
-import argparse
 from datetime import datetime
 
 def clear_training_directory():
@@ -99,14 +98,33 @@ if __name__ == "__main__":
     try:
         print("[STATUS] INITIALIZING")
         
-        parser = argparse.ArgumentParser(description='Train YOLO model for fire detection')
-        parser.add_argument('model', help='YOLO model to use (e.g., yolo12n, yolo12s, yolo12m, yolo12l, yolo12x)')
-        args = parser.parse_args()
+        # Read all configuration from config file
+        config_path = 'YoloAssets/train_config_minimal.yaml'
+        print(f"[INFO] Loading configuration from: {config_path}")
         
-        model_name = args.model
-        model_file = f"{model_name}.pt"
+        with open(config_path, 'r') as f:
+            config = yaml.safe_load(f)
         
-        print(f"[INFO] Using model: {model_file}")
+        # Get model path from config
+        model_file = config.get('model', 'yolo11n.pt')
+        model_type = config.get('model_type', 'base')
+        epochs = config.get('epochs', 100)
+        
+        print(f"[INFO] Using model: {model_file} (type: {model_type})")
+        print(f"[INFO] Training for {epochs} epochs")
+        
+        # Check if model file exists
+        if not os.path.exists(model_file):
+            print(f"[ERROR] Model file not found: {model_file}")
+            # Try to find the model file in the expected location based on type
+            if model_type == 'base':
+                alt_path = f"YoloAssets/BaseModels/{os.path.basename(model_file)}"
+                if os.path.exists(alt_path):
+                    model_file = alt_path
+                    print(f"[INFO] Found model at alternative path: {model_file}")
+                else:
+                    raise FileNotFoundError(f"Model file not found: {model_file}")
+        
         clear_training_directory()
         
         print("[STATUS] LOADING_MODEL")
@@ -115,20 +133,16 @@ if __name__ == "__main__":
         
         # Add callbacks for status monitoring
         add_training_callbacks(model)
-        
-        # Read config to get epochs info
-        with open('YoloAssets/train_config_minimal.yaml', 'r') as f:
-            config = yaml.safe_load(f)
-        epochs = config.get('epochs', 1)
-        print(f"[INFO] Configured for {epochs} epochs")
 
         print("[STATUS] TRAINING_STARTING")
-        model.train(cfg='YoloAssets/train_config_minimal.yaml')
+        model.train(cfg=config_path)
 
         print("[STATUS] VALIDATION_STARTING")
         metrics = model.val()
 
         print("[STATUS] ARCHIVING")
+        # Extract model name for archiving (remove .pt extension and path)
+        model_name = os.path.splitext(os.path.basename(model_file))[0]
         archive_path = save_trained_model_to_archive(model_name, epochs)
         
         if archive_path:
