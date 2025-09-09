@@ -14,6 +14,8 @@ import numpy as np
 import base64
 import torch
 from ultralytics import YOLO
+# Simple logging control
+DEBUG_LOGGING = False
 
 # Flask configuration
 static_dir = os.path.normpath(os.path.join(os.path.dirname(__file__), "../static"))
@@ -26,11 +28,26 @@ training_start_time = None
 epoch_start_times = {}
 last_epoch_duration = None
 total_elapsed_timer = None
+training_process = None  # Global training process for cancellation
 
 # Live detection state variables
 live_detection_active = False
 live_detection_model = None
 live_detection_thread = None
+
+# State persistence for frontend reload
+app_state = {
+    'training_status': 'idle',
+    'training_progress': 0,
+    'current_epoch': 0,
+    'total_epochs': 0,
+    'last_training_message': '',
+    'detection_status': 'idle',
+    'available_models': {'baseModels': [], 'trainedModels': [], 'checkpointModels': []},
+    'debug_logging': False,
+    # Timing data
+    'training_start_time': None,
+}
 
 frontend_dir = os.path.normpath(os.path.join(os.path.dirname(__file__), "../frontend"))
 
@@ -40,49 +57,100 @@ def serve_index():
 
 def update_training_config(epochs, model_info=None):
     """Update training config with epochs and model information"""
+    from datetime import datetime
+    import re
+    
     config_path = os.path.normpath(
         os.path.join(os.path.dirname(__file__), "../../YoloAssets/train_config_minimal.yaml")
     )
+    if DEBUG_LOGGING:
+        print(f"[DEBUG] Updating config at: {config_path}")
     
     try:
+        if not os.path.exists(config_path):
+            if DEBUG_LOGGING:
+                print(f"[DEBUG] Config file not found: {config_path}")
+            return False
+            
         with open(config_path, 'r') as f:
             config = yaml.safe_load(f)
         
         # Update epochs
         config['epochs'] = epochs
         
+        # Generate timestamp for folder name
+        timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+        
+        # Extract model version and size for folder name
+        model_version = "v11"
+        model_size = "n"
+        
         # Update model information if provided
         if model_info:
             model_type = model_info.get('type', 'base')
             model_name = model_info.get('name', 'yolo11n.pt')
             
-            if model_type == 'base':
-                # For base models, use the model name directly from BaseModels folder
-                config['model'] = os.path.join('YoloAssets/BaseModels', model_name)
-            elif model_type == 'trained':
-                # For trained models, use the best.pt from the trained model folder
-                config['model'] = os.path.join('YoloAssets/TrainedModels', model_name, 'best.pt')
-            elif model_type == 'checkpoint':
-                # For checkpoints, use the last.pt or best.pt from checkpoints folder
-                config['model'] = os.path.join('YoloAssets/TrainCheckpoints', model_name, 'last.pt')
+            # Extract version and size from model name for folder naming
+            if 'yolo' in model_name.lower():
+                match = re.search(r'yolo(\d+)([nsmlx])', model_name.lower())
+                if match:
+                    model_version = f"v{match.group(1)}"
+                    model_size = match.group(2)
             
-            config['model_type'] = model_type
+            # Set model path based on type (DO THIS ONCE!)
+            if model_type == 'base':
+                model_path = os.path.join('YoloAssets/BaseModels', model_name)
+                # Base models start fresh training
+                config['resume'] = False
+            elif model_type == 'trained':
+                # Check if it's from TrainedModels folder or finished training from Trains folder
+                if model_name.startswith('finished_run_'):
+                    model_path = os.path.join('YoloAssets/Trains', model_name, 'weights/best.pt')
+                else:
+                    model_path = os.path.join('YoloAssets/TrainedModels', model_name, 'best.pt')
+                # Trained models should use resume mode for continuing training
+                config['resume'] = True
+            elif model_type == 'checkpoint':
+                model_path = os.path.join('YoloAssets/Trains', model_name, 'weights/last.pt')
+                # Checkpoints definitely use resume mode
+                config['resume'] = True
+            
+            config['model'] = model_path
+            # Remove model_type - YOLO doesn't support it
+            if 'model_type' in config:
+                del config['model_type']
+            
+            if DEBUG_LOGGING:
+                print(f"[DEBUG] Updated model to: {model_path}")
+                print(f"[DEBUG] Resume mode: {config.get('resume', False)}")
+        
+        # Generate folder name in format: ongoing_run_timestamp
+        folder_name = f"ongoing_run_{timestamp}"
+        config['name'] = folder_name
+        
+        if DEBUG_LOGGING:
+            print(f"[DEBUG] Set training folder name to: {folder_name}")
         
         with open(config_path, 'w') as f:
             yaml.safe_dump(config, f, default_flow_style=False, sort_keys=False)
         
         return True
     except Exception as e:
-        print(f"Error updating training config: {e}")
+        if DEBUG_LOGGING:
+            print(f"[DEBUG] Error updating training config: {e}")
         return False
 
 @app.route("/train", methods=["POST"])
 def run_training():
+    global app_state, training_process
     
     try:
         data = request.get_json()
         selected_model = data.get("model", "")
         epochs = data.get("epochs", 100)
+        
+        if DEBUG_LOGGING:
+            print(f"[DEBUG] Training request: {selected_model}, {epochs} epochs")
         
         # Parse the selected model format: "type:modelname"
         if ":" in selected_model:
@@ -95,12 +163,9 @@ def run_training():
             model_type = "base"
         
         # Prepare model info for config update
-        model_info = {
-            'type': model_type,
-            'name': model_name
-        }
+        model_info = {'type': model_type, 'name': model_name}
         
-        # Update training config with epochs and model info
+        # Update training config
         if not update_training_config(epochs, model_info):
             return jsonify({"status": "error", "message": "Failed to update training config"}), 500
         
@@ -108,127 +173,153 @@ def run_training():
             os.path.join(os.path.dirname(__file__), "../../YoloAssets/TrainYolo.py")
         )
         
+        if not os.path.exists(script_path):
+            return jsonify({"status": "error", "message": f"Training script not found: {script_path}"}), 500
         
         global training_start_time
         training_start_time = time.time()
         
-        start_total_elapsed_timer()
+        # Update app state
+        app_state['training_status'] = 'starting'
+        app_state['total_epochs'] = epochs
+        app_state['current_epoch'] = 0
+        app_state['training_progress'] = 0
+        app_state['last_training_message'] = f"Starting training {model_name} for {epochs} epochs"
         
+        start_total_elapsed_timer()
         emit_status_update("Preparing for train : Loading YOLO...")
         
-        process = subprocess.Popen(
+        training_process = subprocess.Popen(
             [sys.executable, script_path],
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             universal_newlines=True,
+            encoding='utf-8',
+            errors='replace',  # Replace invalid characters instead of crashing
             bufsize=1,
             cwd=os.path.join(os.path.dirname(__file__), "../..")
         )
         
+
         def monitor_regular_training_output():
-            global training_start_time, epoch_start_times, last_epoch_duration
-            for line in iter(process.stdout.readline, ''):
+            global training_start_time, epoch_start_times, last_epoch_duration, app_state
+            
+            training_completed_successfully = False
+            
+            for line in iter(training_process.stdout.readline, ''):
                 line = line.strip()
                 if line:
+                    if DEBUG_LOGGING:
+                        print(f"[DEBUG] Training output: {line}")
 
                     if "[STATUS] INITIALIZING" in line:
+                        app_state['training_status'] = 'initializing'
+                        app_state['last_training_message'] = "Initializing..."
                         emit_status_update("Preparing for train : Initializing...")
                         
                     elif "[STATUS] TRAINING_STARTING" in line:
+                        app_state['training_status'] = 'warming_up'
+                        app_state['last_training_message'] = "Warming up..."
                         emit_status_update("Preparing for train : Warming up...")
                         
-                    elif "Fast image access" in line:
+                    elif "Fast image access" in line and app_state['training_status'] in ['initializing', 'warming_up']:
+                        app_state['training_status'] = 'discovering'
+                        app_state['last_training_message'] = "Discovering dataset..."
                         emit_status_update("Preparing for train : Discovering Dataset...")
                         
+                    elif "[STATUS] VALIDATION_STARTING" in line:
+                        app_state['training_status'] = 'validating'
+                        app_state['last_training_message'] = "Running validation..."
+                        emit_status_update("Validating...")
+                        
                     elif "[STATUS] TRAINING_STARTED" in line:
+                        app_state['training_status'] = 'training'
+                        app_state['last_training_message'] = "Training in progress..."
                         emit_status_update("Training")
-                        total_elapsed = time.time() - training_start_time
-                        socketio.emit('total_elapsed_update', {
-                            'total_elapsed_seconds': total_elapsed
-                        })
                         
                     elif "G      " in line and "/" in line and "%" in line:
                         try:
                             parts = line.split()
-                            
                             epoch_info = parts[0] if "/" in parts[0] else None
-                            current_epoch, total_epochs = map(int, epoch_info.split('/')) if epoch_info else (0, 0)
                             
-                            gpu_memory = parts[1] if len(parts) > 1 and 'G' in parts[1] else None
-                            
-                            progress_percent = 0
-                            current_batch = 0
-                            total_batches = 0
-                            iteration_speed = None
-                            elapsed_time = None
-                            remaining_time = None
-                            
-                            for i, part in enumerate(parts):
-                                if '%' in part and '|' in part:
-                                    progress_percent = float(part.split('%')[0])
-                                    
-                                    if i + 1 < len(parts) and '/' in parts[i + 1]:
-                                        batch_info = parts[i + 1].replace('|', '').strip()
-                                        if '/' in batch_info:
-                                            current_batch, total_batches = map(int, batch_info.split('/'))
-                                    
-                                    for j in range(i, len(parts)):
-                                        if '[' in parts[j] and '<' in parts[j]:
-                                            time_part = parts[j].replace('[', '').replace(']', '')
-                                            if '<' in time_part:
-                                                elapsed_time, remaining_time = time_part.split('<')
-                                                remaining_time = remaining_time.replace(',', '').strip()
-                                        elif 's/it]' in parts[j]:
-                                            iteration_speed = parts[j].replace('s/it]', '').replace(',', '').strip()
-                                    break
-                            
-                            
-                            if current_epoch not in epoch_start_times:
-                                epoch_start_times[current_epoch] = time.time()
-                            
-                            total_elapsed = time.time() - training_start_time
-                            
-                            if remaining_time and ('?' in str(remaining_time)):
-                                remaining_time = '00:00'
-                            
-                            total_remaining = None
-                            if remaining_time and remaining_time in ['00:00', '0:00'] and elapsed_time:
-                                epoch_duration_seconds = parse_time_to_seconds(elapsed_time)
-                                if epoch_duration_seconds > 0:
-                                    last_epoch_duration = epoch_duration_seconds
-                                    remaining_epochs = total_epochs - current_epoch
-                                    total_remaining = remaining_epochs * last_epoch_duration
-                            
-                            socketio.emit('training_update', {
-                                'epoch': current_epoch,
-                                'total_epochs': total_epochs,
-                                'progress': progress_percent,
-                                'batch_progress': progress_percent,
-                                'current_batch': current_batch,
-                                'total_batches': total_batches,
-                                'gpu_memory': gpu_memory,
-                                'iteration_speed': iteration_speed,
-                                'elapsed_time': elapsed_time,
-                                'remaining_time': remaining_time,
-                                'total_elapsed_seconds': total_elapsed,
-                                'total_remaining_seconds': total_remaining
-                            })
-                            
+                            if epoch_info:
+                                current_epoch, total_epochs = map(int, epoch_info.split('/'))
+                                
+                                # Update app state
+                                app_state['current_epoch'] = current_epoch
+                                app_state['total_epochs'] = total_epochs
+                                app_state['training_progress'] = (current_epoch / total_epochs) * 100
+                                app_state['last_training_message'] = f"Training epoch {current_epoch}/{total_epochs}"
+                                
+                                # Parse timing and progress info from training output
+                                progress_percent = 0
+                                gpu_memory = None
+                                current_batch = 0
+                                total_batches = 0
+                                iteration_speed = None
+                                elapsed_time = None
+                                remaining_time = None
+                                
+                                # Extract all available info from the line
+                                for i, part in enumerate(parts):
+                                    if '%' in part and '|' in part:
+                                        progress_percent = float(part.split('%')[0])
+                                        # Look for batch info
+                                        if i + 1 < len(parts) and '/' in parts[i + 1]:
+                                            batch_info = parts[i + 1].replace('|', '').strip()
+                                            if '/' in batch_info:
+                                                current_batch, total_batches = map(int, batch_info.split('/'))
+                                    elif 'G' in part and len(part) < 10:  # GPU memory
+                                        gpu_memory = part
+                                    elif '[' in part and '<' in part:  # Time info
+                                        time_part = part.replace('[', '').replace(']', '')
+                                        if '<' in time_part:
+                                            elapsed_time, remaining_time = time_part.split('<')
+                                            remaining_time = remaining_time.replace(',', '').strip()
+                                    elif 's/it' in part:  # Iteration speed
+                                        iteration_speed = part.replace(']', '').replace(',', '').strip()
+                                
+                                # Send complete training update to frontend
+                                socketio.emit('training_update', {
+                                    'epoch': current_epoch,
+                                    'total_epochs': total_epochs,
+                                    'progress': progress_percent,
+                                    'batch_progress': progress_percent,
+                                    'current_batch': current_batch,
+                                    'total_batches': total_batches,
+                                    'gpu_memory': gpu_memory,
+                                    'iteration_speed': iteration_speed,
+                                    'elapsed_time': elapsed_time,
+                                    'remaining_time': remaining_time,
+                                    'total_elapsed_seconds': time.time() - training_start_time if training_start_time else 0
+                                })
+                                
                         except Exception as e:
-                            pass
+                            if DEBUG_LOGGING:
+                                print(f"[DEBUG] Error parsing training progress: {e}")
                         
                     elif "[STATUS] MODEL_LOADED" in line:
                         pass
                     elif "[STATUS] SUCCESS" in line:
+                        app_state['training_status'] = 'completed'
+                        app_state['last_training_message'] = 'Training completed successfully!'
                         total_elapsed = time.time() - training_start_time if training_start_time else 0
                         stop_total_elapsed_timer()
+                        training_completed_successfully = True
+                        
                         emit_status_update("Training Complete!")
                         socketio.emit('training_complete', {
                             'message': 'Training completed successfully!',
                             'total_time': format_seconds_to_time(total_elapsed)
                         })
                         
+                    elif "[INFO] Training completed successfully" in line:
+                        # Rename training folder from ongoing to finished
+                        rename_training_folder_to_finished()
+                        
                     elif "[STATUS] FAILED" in line:
+                        app_state['training_status'] = 'failed'
+                        app_state['last_training_message'] = 'Training failed'
                         total_elapsed = time.time() - training_start_time if training_start_time else 0
                         stop_total_elapsed_timer()
                         emit_status_update("Training Failed")
@@ -236,7 +327,7 @@ def run_training():
                             'error': 'Training process failed',
                             'total_time': format_seconds_to_time(total_elapsed)
                         })
-        
+            
         monitor_thread = threading.Thread(target=monitor_regular_training_output)
         monitor_thread.daemon = True
         monitor_thread.start()
@@ -249,23 +340,94 @@ def run_training():
         })
         
     except Exception as e:
+        if DEBUG_LOGGING:
+            print(f"[DEBUG] Training failed: {str(e)}")
         return jsonify({"status": "error", "message": str(e)}), 500
 
-# Timer and status utility functions
+# State persistence endpoints
+@app.route("/get_app_state", methods=["GET"])
+def get_app_state():
+    """Return current app state for frontend reload"""
+    return jsonify(app_state)
 
-def parse_time_to_seconds(time_str):
-    """Parse time strings to seconds"""
-    if not time_str or time_str == '-':
-        return 0
+@app.route("/set_debug_logging", methods=["POST"])
+def set_debug_logging():
+    """Enable/disable debug logging"""
+    global DEBUG_LOGGING, app_state
+    data = request.get_json()
+    DEBUG_LOGGING = data.get('enabled', False)
+    app_state['debug_logging'] = DEBUG_LOGGING
+    print(f"Debug logging {'enabled' if DEBUG_LOGGING else 'disabled'}")
+    return jsonify({"status": "success", "debug_logging": DEBUG_LOGGING})
+
+@app.route("/cancel_training", methods=["POST"])
+def cancel_training():
+    """Cancel the currently running training process"""
+    import shutil
+    global training_process, app_state, total_elapsed_timer
+    
     try:
-        parts = time_str.split(':')
-        if len(parts) == 2:
-            minutes = int(parts[0]) or 0
-            seconds = int(parts[1]) or 0
-            return minutes * 60 + seconds
-    except:
-        pass
-    return 0
+        data = request.get_json() or {}
+        save_checkpoint = data.get('save_checkpoint', False)
+        
+        checkpoint_path = None
+        
+        if training_process and training_process.poll() is None:
+            # Process is still running, terminate it
+            training_process.terminate()
+            training_process.wait(timeout=5)  # Wait up to 5 seconds for graceful termination
+            if DEBUG_LOGGING:
+                print("[DEBUG] Training process terminated")
+
+        # Stop the timer
+        if total_elapsed_timer:
+            total_elapsed_timer.cancel()
+            total_elapsed_timer = None
+        
+        # Update app state
+        app_state['training_status'] = 'cancelled'
+        app_state['last_training_message'] = 'Training cancelled by user'
+        
+        # Reset training process
+        training_process = None
+        
+        # Emit cancellation status
+        socketio.emit('training_complete', {
+            'status': 'cancelled',
+            'message': 'Training cancelled by user'
+        })
+        
+        result = {"status": "success", "message": "Training cancelled successfully"}
+        if save_checkpoint:
+            result["message"] = "Training cancelled "
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        if DEBUG_LOGGING:
+            print(f"[DEBUG] Error cancelling training: {e}")
+        return jsonify({"status": "error", "message": f"Failed to cancel training: {str(e)}"}), 500
+
+def rename_training_folder_to_finished():
+    # Get current training folder name from config
+    config_path = os.path.normpath(os.path.join(os.path.dirname(__file__), "../../YoloAssets/train_config_minimal.yaml"))   
+    with open(config_path, 'r') as f:
+        config = yaml.safe_load(f)
+    folder_name = config.get('name', '')
+    # Generate new folder name
+    new_folder_name = folder_name.replace('ongoing_', 'finished_')
+    
+    # Build paths
+    trains_dir = os.path.normpath(os.path.join(os.path.dirname(__file__), "../../YoloAssets/Trains"))
+    old_path = os.path.join(trains_dir, folder_name)
+    new_path = os.path.join(trains_dir, new_folder_name)
+    # Rename folder if source exists and target doesn't
+    if os.path.exists(old_path) and not os.path.exists(new_path):
+       os.rename(old_path, new_path)
+
+
+
+# Timer and status utility functions
 
 def format_seconds_to_time(seconds):
     """Format seconds to time string"""
@@ -402,13 +564,16 @@ def get_all_models():
                 if os.path.isdir(model_path):
                     result["trainedModels"].append(item)
         
-        # 3. Checkpoint models from YoloAssets/TrainCheckpoints (folders)
-        checkpoint_models_dir = os.path.normpath(os.path.join(os.path.dirname(__file__), "../../YoloAssets/TrainCheckpoints"))
-        if os.path.exists(checkpoint_models_dir):
-            for item in os.listdir(checkpoint_models_dir):
-                model_path = os.path.join(checkpoint_models_dir, item)
+        # 3. Models from YoloAssets/Trains (ongoing and finished training)
+        trains_models_dir = os.path.normpath(os.path.join(os.path.dirname(__file__), "../../YoloAssets/Trains"))
+        if os.path.exists(trains_models_dir):
+            for item in os.listdir(trains_models_dir):
+                model_path = os.path.join(trains_models_dir, item)
                 if os.path.isdir(model_path):
-                    result["checkpointModels"].append(item)
+                    if item.startswith('ongoing_run_'):
+                        result["checkpointModels"].append(item)
+                    elif item.startswith('finished_run_'):
+                        result["trainedModels"].append(item)
         
         return jsonify(result)
         
@@ -504,6 +669,8 @@ def run_detection():
                     stdout=subprocess.PIPE,
                     stderr=subprocess.STDOUT,
                     universal_newlines=True,
+                    encoding='utf-8',
+                    errors='replace',  # Replace invalid characters instead of crashing
                     bufsize=1,
                     cwd=os.path.join(os.path.dirname(__file__), "../..")
                 )
@@ -592,7 +759,6 @@ def run_detection():
                                 file_info = progress_part.split("(")[1].split(")")[0]
                                 current, total = map(int, file_info.split("/"))
                                 processed_files = current
-                                
                                 socketio.emit('detection_update', {
                                     'message': f'📈 Progress: {percentage:.1f}% ({current}/{total} files)'
                                 })
@@ -845,5 +1011,5 @@ def run_live_detection_process(camera_index):
         })
 
 if __name__ == "__main__":
-    socketio.run(app, host="0.0.0.0", port=5000, debug=True)
+    socketio.run(app, host="0.0.0.0", port=5000, debug=False)
 

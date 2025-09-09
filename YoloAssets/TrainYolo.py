@@ -4,40 +4,6 @@ import shutil
 import yaml
 from datetime import datetime
 
-def clear_training_directory():
-    """Clear YoloAssets/runs/train directory"""
-    train_dir = "YoloAssets/runs/train"
-    if os.path.exists(train_dir):
-        try:
-            shutil.rmtree(train_dir)
-            print(f"Cleared training directory: {train_dir}")
-        except Exception as e:
-            print(f"Warning: Could not clear training directory: {e}")
-
-def save_trained_model_to_archive(model_name, epochs):
-    """Archive training results to TrainedModels/{model}_E{epochs}_{datetime}"""
-    current_time = datetime.now()
-    datetime_str = current_time.strftime("%Y%m%d_%H%M%S")
-    folder_name = f"{model_name}_E{epochs}_{datetime_str}"
-    
-    source_path = os.path.join(os.getcwd(), 'YoloAssets/runs/train/fire_detection_model')
-    dest_base = os.path.join(os.getcwd(), 'TrainedModels')
-    dest_path = os.path.join(dest_base, folder_name)
-    
-    os.makedirs(dest_base, exist_ok=True)
-    
-    if os.path.exists(source_path):
-        try:
-            shutil.copytree(source_path, dest_path)
-            print(f"\n✅ Training archived to: {dest_path}")
-            return dest_path
-        except Exception as e:
-            print(f"❌ Error archiving training: {e}")
-            return None
-    else:
-        print(f"❌ Training folder not found: {source_path}")
-        return None
-
 def add_training_callbacks(model):
     """Add callbacks for training status monitoring"""
     
@@ -125,8 +91,6 @@ if __name__ == "__main__":
                 else:
                     raise FileNotFoundError(f"Model file not found: {model_file}")
         
-        clear_training_directory()
-        
         print("[STATUS] LOADING_MODEL")
         model = YOLO(model_file)
         print("[STATUS] MODEL_LOADED")
@@ -137,20 +101,8 @@ if __name__ == "__main__":
         print("[STATUS] TRAINING_STARTING")
         model.train(cfg=config_path)
 
-        print("[STATUS] VALIDATION_STARTING")
-        metrics = model.val()
-
-        print("[STATUS] ARCHIVING")
-        # Extract model name for archiving (remove .pt extension and path)
-        model_name = os.path.splitext(os.path.basename(model_file))[0]
-        archive_path = save_trained_model_to_archive(model_name, epochs)
-        
-        if archive_path:
-            print("[STATUS] SUCCESS")
-            print(f"[INFO] Training completed successfully")
-        else:
-            print("[STATUS] FAILED")
-            print("[ERROR] Failed to archive training results")
+        print("[STATUS] SUCCESS")
+        print(f"[INFO] Training completed successfully")
 
     except KeyboardInterrupt:
         print("[STATUS] CANCELLED")

@@ -52,28 +52,16 @@ def get_checkpoint_info(checkpoint_path):
 
 def save_continued_model_to_archive(model_name, original_epochs, continued_epochs, start_epoch):
     """Archive continued training results"""
+    # Note: Training results are automatically saved by YOLO in the proper location
+    # No need to copy files as YOLO manages training outputs automatically
     current_time = datetime.now()
     datetime_str = current_time.strftime("%Y%m%d_%H%M%S")
     total_epochs = original_epochs + continued_epochs
     folder_name = f"{model_name}_E{total_epochs}_Continued_from_{start_epoch}_{datetime_str}"
     
-    source_path = os.path.join(os.getcwd(), 'YoloAssets/runs/train/fire_detection_model')
-    dest_base = os.path.join(os.getcwd(), 'TrainedModels')
-    dest_path = os.path.join(dest_base, folder_name)
-    
-    os.makedirs(dest_base, exist_ok=True)
-    
-    if os.path.exists(source_path):
-        try:
-            shutil.copytree(source_path, dest_path)
-            print(f"\n✅ Continued training archived to: {dest_path}")
-            return dest_path
-        except Exception as e:
-            print(f"❌ Error archiving continued training: {e}")
-            return None
-    else:
-        print(f"❌ Training folder not found: {source_path}")
-        return None
+    print(f"\n✅ Continued training completed: {folder_name}")
+    print(f"[INFO] Training results are managed by YOLO in the training directory")
+    return folder_name
 
 def add_training_callbacks(model, start_epoch=0):
     """Add callbacks for training status monitoring with epoch offset"""

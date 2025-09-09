@@ -1,22 +1,13 @@
-# YOLO Training Configuration
-# This file contains all training parameters
-
-# Model Configuration
-model: yolo11n.pt  # Path to the model file (will be updated by dashboard)
-model_type: base   # Type: base, trained, checkpoint
-
-# Training Parameters
+model: YoloAssets/BaseModels\Fresh-v12-extraLarge.pt
 batch: 0.9
 data: YoloAssets/dataset/data.yaml
 device: cuda
 epochs: 100
 imgsz: 640
-name: fire_detection_model
+name: ongoing_run_20250909155716
 plots: true
-project: YoloAssets/runs/train
+project: YoloAssets/Trains
 save: true
-
-# Additional Training Settings
 patience: 100
 optimizer: auto
 lr0: 0.01
@@ -29,3 +20,4 @@ warmup_bias_lr: 0.1
 box: 7.5
 cls: 0.5
 dfl: 1.5
+resume: false

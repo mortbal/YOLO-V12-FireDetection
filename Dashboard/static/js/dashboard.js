@@ -13,6 +13,7 @@ class TrainingDashboard {
         this.loadTrainedModels();
         this.checkForUnfinishedTraining();
         this.initializeLiveDetection();
+        this.loadAppState();
     }
 
     initializeElements() {
@@ -26,6 +27,7 @@ class TrainingDashboard {
         this.modelSelect = document.getElementById('model-select');
         this.epochsInput = document.getElementById('epochs');
         this.startButton = document.getElementById('start-training');
+        this.debugLoggingCheckbox = document.getElementById('debug-logging-checkbox');
         this.statusOverlay = document.getElementById('training-status-overlay');
         this.statusText = document.getElementById('training-status-text');
         
@@ -109,7 +111,12 @@ class TrainingDashboard {
         });
         
         if (this.startButton) {
-            this.startButton.addEventListener('click', () => this.startTraining());
+            this.startButton.addEventListener('click', () => this.handleTrainingButton());
+        }
+        
+        // Debug logging checkbox
+        if (this.debugLoggingCheckbox) {
+            this.debugLoggingCheckbox.addEventListener('change', () => this.toggleDebugLogging());
         }
         
         
@@ -157,6 +164,65 @@ class TrainingDashboard {
         this.startRealTraining(config);
     }
     
+    handleTrainingButton() {
+        if (this.isTraining) {
+            this.cancelTraining();
+        } else {
+            this.startTraining();
+        }
+    }
+    
+    async cancelTraining() {
+        if (confirm('Are you sure you want to cancel the training?')) {
+            try {
+                // Call backend to stop training
+                const response = await fetch('/cancel_training', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ save_checkpoint: false })
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || 'Failed to cancel training on backend');
+                }
+                
+                const result = await response.json();
+                
+                // Stop the training locally
+                this.isTraining = false;
+                this.stopTotalElapsedTimer();
+                this.updateUI();
+                
+                this.statusText.textContent = 'Training cancelled';
+                
+            } catch (error) {
+                console.error('Error cancelling training:', error);
+                alert('Failed to cancel training: ' + error.message);
+            }
+        }
+    }
+    
+    toggleDebugLogging() {
+        const enabled = this.debugLoggingCheckbox.checked;
+        
+        fetch('/set_debug_logging', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ enabled: enabled })
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log(enabled ? 'Debug logging enabled' : 'Debug logging disabled');
+        })
+        .catch(error => {
+            console.error('Error setting debug logging:', error);
+        });
+    }
 
     initializeTrainingTimers() {
         this.trainingStartTime = Date.now();
@@ -198,12 +264,26 @@ class TrainingDashboard {
     }
 
     updateUI() {
-        this.startButton.disabled = this.isTraining;
-        this.startButton.textContent = this.isTraining ? 'Training...' : 'Start Training';
-        
+        // Change button text and style based on training status
         if (this.isTraining) {
+            this.startButton.textContent = 'Cancel Training';
+            this.startButton.className = 'btn-cancel'; // Red cancel button
+            this.startButton.disabled = false;
+            
+            // Disable model selection and epochs input during training
+            this.modelSelect.disabled = true;
+            this.epochsInput.disabled = true;
+            
             this.showStatusOverlay('Preparing for train : Loading YOLO...');
         } else {
+            this.startButton.textContent = 'Start Training';
+            this.startButton.className = 'btn-primary'; // Blue start button
+            this.startButton.disabled = false;
+            
+            // Enable model selection and epochs input when not training
+            this.modelSelect.disabled = false;
+            this.epochsInput.disabled = false;
+            
             this.hideStatusOverlay();
             if (this.statusText) {
                 this.statusText.textContent = 'Ready to start training';
@@ -421,15 +501,14 @@ class TrainingDashboard {
         if (this.totalElapsedTimer) {
             clearInterval(this.totalElapsedTimer);
         }
-        
+          console.log("hello");
         this.totalElapsedTimer = setInterval(() => {
             if (this.isTraining) {
                 // Update countdown for total remaining time if we have an estimate
-                if (this.estimatedTotalRemaining && this.estimatedTotalRemaining > 0) {
+                console.log("hello");
+                if (this.estimatedTotalRemaining > 0) {
                     this.estimatedTotalRemaining -= 1;
-                    if (this.totalRemainingTime) {
-                        this.totalRemainingTime.textContent = this.formatTimeAdvanced(Math.max(0, this.estimatedTotalRemaining));
-                    }
+                    this.totalRemainingTime.textContent = this.formatTimeAdvanced(Math.max(0, this.estimatedTotalRemaining));  
                 }
             }
         }, 1000);
@@ -693,10 +772,16 @@ Results saved to: ${resultFilesFolder}`;
                 }
                 
                 
-                if (data.total_remaining_seconds !== null && data.total_remaining_seconds !== undefined && this.totalRemainingTime) {
-                    this.estimatedTotalRemaining = data.total_remaining_seconds;
-                    this.totalRemainingTime.textContent = this.formatTimeAdvanced(data.total_remaining_seconds);
-                    }
+                // Calculate total remaining time only once when we don't have an estimate yet
+                if (!this.estimatedTotalRemaining && data.elapsed_time && data.remaining_time && data.epoch && data.total_epochs) {
+                    const currentEpochElapsed = this.parseTimeToSeconds(data.elapsed_time);
+                    const currentEpochRemaining = this.parseTimeToSeconds(data.remaining_time);
+                    const currentEpochTotal = currentEpochElapsed + currentEpochRemaining;
+                    const remainingEpochs = data.total_epochs - data.epoch;
+                    const calculatedTotalRemaining = (remainingEpochs * currentEpochTotal) + currentEpochRemaining;
+                    this.estimatedTotalRemaining = calculatedTotalRemaining;
+               
+                }
                 
                 this.currentEpoch = data.epoch;
                 
@@ -960,37 +1045,55 @@ Results saved to: ${resultFilesFolder}`;
                     data.baseModels.forEach(modelName => {
                         const option = document.createElement('option');
                         option.value = `base:${modelName}`;
-                        option.textContent = modelName;
+                        // Add emoji and clean name (remove Fresh- prefix and .pt extension)
+                        let cleanName = modelName.replace(/^Fresh-/i, '').replace(/\.pt$/i, '');
+                        option.textContent = `🆕 ${cleanName}`;
                         option.style.color = '#4A90E2'; // Blue
                         baseGroup.appendChild(option);
                     });
                     this.modelSelect.appendChild(baseGroup);
                 }
                 
-                // Add trained models section
+                // Add trained models section (includes finished training from Trains folder)
                 if (data.trainedModels && data.trainedModels.length > 0) {
                     const trainedGroup = document.createElement('optgroup');
-                    trainedGroup.label = 'Fully Trained Models';
+                    trainedGroup.label = 'Completed Training Models';
                     trainedGroup.style.color = '#48bb78'; // Green
                     data.trainedModels.forEach(modelName => {
                         const option = document.createElement('option');
                         option.value = `trained:${modelName}`;
-                        option.textContent = modelName;
+                        // Add emoji and extract timestamp for finished models
+                        let displayName;
+                        if (modelName.startsWith('finished_run_')) {
+                            const timestamp = modelName.replace('finished_run_', '');
+                            displayName = `✅ ${timestamp}`;
+                        } else {
+                            displayName = `✅ ${modelName}`;
+                        }
+                        option.textContent = displayName;
                         option.style.color = '#48bb78'; // Green
                         trainedGroup.appendChild(option);
                     });
                     this.modelSelect.appendChild(trainedGroup);
                 }
                 
-                // Add checkpoint models section
+                // Add checkpoint models section (ongoing training from Trains folder)
                 if (data.checkpointModels && data.checkpointModels.length > 0) {
                     const checkpointGroup = document.createElement('optgroup');
-                    checkpointGroup.label = 'Training Checkpoints';
+                    checkpointGroup.label = 'Ongoing Training (Checkpoints)';
                     checkpointGroup.style.color = '#f6ad55'; // Yellow/Orange
                     data.checkpointModels.forEach(modelName => {
                         const option = document.createElement('option');
                         option.value = `checkpoint:${modelName}`;
-                        option.textContent = modelName;
+                        // Add emoji and extract timestamp for ongoing models
+                        let displayName;
+                        if (modelName.startsWith('ongoing_run_')) {
+                            const timestamp = modelName.replace('ongoing_run_', '');
+                            displayName = `🔄 ${timestamp}`;
+                        } else {
+                            displayName = `🔄 ${modelName}`;
+                        }
+                        option.textContent = displayName;
                         option.style.color = '#f6ad55'; // Yellow/Orange
                         checkpointGroup.appendChild(option);
                     });
@@ -1020,6 +1123,38 @@ loadTrainedModels() {
       .catch(error => {
           console.error('Error loading trained models:', error);
       });
+}
+
+loadAppState() {
+    fetch('/get_app_state')
+        .then(response => response.json())
+        .then(state => {
+            // Restore debug logging checkbox state
+            if (this.debugLoggingCheckbox) {
+                this.debugLoggingCheckbox.checked = state.debug_logging || false;
+            }
+            
+            // Restore training state
+            if (state.training_status !== 'idle') {
+                console.log('Restoring training state:', state.training_status);
+                
+                // Update training UI based on state
+                this.currentEpochDisplay.textContent = state.current_epoch || '-';
+                this.totalEpochsDisplay.textContent = state.total_epochs || '-';
+                this.statusText.textContent = state.last_training_message || 'Training...';
+                
+                // If training is active (not idle or failed), set UI to training mode
+                if (state.training_status !== 'idle' && state.training_status !== 'failed') {
+                    this.isTraining = true;
+                    this.updateUI(); // Button becomes "Cancel Training"
+                    this.initializeTrainingTimers(); // Start the timer for total remaining time
+                }
+                // If idle or failed, keep default UI (button stays "Start Training")
+            }
+        })
+        .catch(error => {
+            console.error('Error loading app state:', error);
+        });
 }
 
 // New function: Rearrange detection controls into two rows
