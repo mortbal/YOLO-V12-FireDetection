@@ -1,7 +1,8 @@
 # Dataset folder - contains large training/validation images
-YoloAssets\dataset\
-DetectionTest\
-YoloAssets\TrainedModels\
+YoloAssets/dataset/
+DetectionTest/
+YoloAssets/Trains/
+YoloAssets/BaseModels/
 # Training runs and model outputs
 runs/
 
@@ -37,3 +38,4 @@ Thumbs.db
 *.tmp
 *.temp
 DetectionTest
+Dashboard/static/assets/icons/Logo.svg
