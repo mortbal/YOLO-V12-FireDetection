@@ -501,11 +501,9 @@ class TrainingDashboard {
         if (this.totalElapsedTimer) {
             clearInterval(this.totalElapsedTimer);
         }
-          console.log("hello");
         this.totalElapsedTimer = setInterval(() => {
             if (this.isTraining) {
                 // Update countdown for total remaining time if we have an estimate
-                console.log("hello");
                 if (this.estimatedTotalRemaining > 0) {
                     this.estimatedTotalRemaining -= 1;
                     this.totalRemainingTime.textContent = this.formatTimeAdvanced(Math.max(0, this.estimatedTotalRemaining));  
@@ -757,9 +755,18 @@ Results saved to: ${resultFilesFolder}`;
             this.socket = io('http://localhost:5000', {
                 transports: ['websocket', 'polling']
             });
+
+            this.socket.on('connect', () => {
+                console.log('[DEBUG] Socket connected successfully');
+            });
+
+            this.socket.on('disconnect', () => {
+                console.log('[DEBUG] Socket disconnected');
+            });
             
             this.socket.on('training_update', (data) => {
-                
+                console.log('[DEBUG] Received training_update:', data);
+
                 this.hideStatusOverlay();
                 
                 if (!this.isTraining) {
@@ -801,6 +808,7 @@ Results saved to: ${resultFilesFolder}`;
             });
             
             this.socket.on('training_status_update', (data) => {
+                console.log('[DEBUG] Received training_status_update:', data);
                 this.updateTrainingStatus(data.status);
             });
             
