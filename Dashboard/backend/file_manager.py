@@ -4,8 +4,6 @@ Handles file system operations and model discovery
 """
 
 import os
-import tkinter as tk
-from tkinter import filedialog
 from shared_types import UpdateType
 
 class FileManager:
@@ -13,61 +11,6 @@ class FileManager:
         self.emit_to_frontend = emit_to_frontend
         self.log_update = log_update
 
-    def browse_folder(self, folder_type: str):
-        """
-        Open folder browser dialog
-
-        Args:
-            folder_type: Type of folder ('test', 'result', or other)
-
-        Returns:
-            dict: Status response with folder path
-        """
-        try:
-            # Create a hidden tkinter root window
-            root = tk.Tk()
-            root.withdraw()  # Hide the main window
-            root.attributes('-topmost', True)  # Bring to front
-
-            # Set dialog properties based on folder type
-            if folder_type == 'test':
-                title = "Select Test Files Folder"
-                initial_dir = "../TestFiles"
-            elif folder_type == 'result':
-                title = "Select Results Output Folder"
-                initial_dir = "../ResultFiles"
-            else:
-                title = "Select Folder"
-                initial_dir = ".."
-
-            # Make sure initial directory exists
-            if not os.path.exists(initial_dir):
-                initial_dir = os.path.expanduser("~")  # Default to home directory
-
-            folder_path = filedialog.askdirectory(
-                title=title,
-                initialdir=initial_dir
-            )
-
-            # Clean up the tkinter root
-            root.destroy()
-
-            if folder_path:
-                return {
-                    "status": "success",
-                    "folder_path": folder_path
-                }
-            else:
-                return {
-                    "status": "cancelled",
-                    "message": "No folder selected"
-                }
-
-        except Exception as e:
-            return {
-                "status": "error",
-                "message": f"Failed to open folder dialog: {str(e)}"
-            }
 
     def get_all_models(self):
         """

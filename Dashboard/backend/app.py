@@ -222,16 +222,6 @@ def handle_disconnect():
     pass
 
 if __name__ == "__main__":
-    print("=" * 50)
-    print("🔥 Fire Detection Dashboard Starting...")
-    print(f"📁 Root Directory: {rootDir}")
-    print(f"🌐 Server will be available at: http://localhost:5000")
-    print(f"🐛 Debug Logging: {'Enabled' if DEBUG_LOGGING else 'Disabled'}")
-    print("=" * 50)
-
-    # Test logging system
-    print("✅ Testing logging system...")
-    log_update(UpdateType.STATUS, "Dashboard initialization complete")
 
     # Test manager initialization
     print("✅ Managers initialized successfully")
